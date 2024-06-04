@@ -1,41 +1,76 @@
 <script setup lang="ts">
-import { TresCanvas } from '@tresjs/core';
-import { useLoader, useTexture } from '@tresjs/core'
+import { ref, onMounted, onUnmounted } from "vue";
+import { TresCanvas, useRenderLoop } from "@tresjs/core";
+import { useTexture } from "@tresjs/core";
 //@ts-ignore
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader'
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader";
+//@ts-ignore
 import { OrbitControls, useGLTF } from "@tresjs/cientos";
+import { gsap } from "gsap";
 
+const { scene, materials } = await useGLTF("ramler_chair_1.glb");
 
-const { scene, nodes, animations, materials } = await useGLTF('ramler_chair_1.glb')
-
-import { TextureLoader } from 'three'
-
-const pbrTexture = await useTexture({
-  map: 'Ramler_2.png',
-  // displacementMap:
-  //   'https://raw.githubusercontent.com/Tresjs/assets/main/textures/black-rock/Rock035_2K_Displacement.jpg',
-  // roughnessMap:
-  //   'https://raw.githubusercontent.com/Tresjs/assets/main/textures/black-rock/Rock035_2K_Roughness.jpg',
-  // normalMap:
-  //   'https://raw.githubusercontent.com/Tresjs/assets/main/textures/black-rock/Rock035_2K_NormalGL.jpg',
-  // ambientOcclusion:
-  //   'https://raw.githubusercontent.com/Tresjs/assets/main/textures/black-rock/Rock035_2K_AmbientOcclusion.jpg',
+const Ramler_1_Texture = await useTexture({
+  map: "Ramler_1.png",
 });
 
-// Apply materials manually to specific objects
-scene.children.forEach((child: { name: string; material: any; }) => {
-  if (child.name === 'Aluminium_leg_stool') {
-    child.material = materials['Aluminium_legs'];
-  } 
-  
-  // else if (child.name === 'ObjectName2') {
-  //   child.material = materials['MaterialName2'];
-  // }
-  // Add more conditions as needed
+const Ramler_3_Texture = await useTexture({
+  map: "Ramler_3.png",
 });
 
-console.log(scene.children)
-console.log(materials)
+const planeRef = ref();
+
+const planeRef_2 = ref();
+
+const { onLoop } = useRenderLoop();
+
+console.log(scene.children);
+console.log(materials);
+
+let animationActive = true;
+let userClicked = false;
+
+const handlePointerDown = () => {
+  if (planeRef_2.value) {
+    planeRef_2.value.visible = false;
+    userClicked = true;
+  }
+};
+
+onMounted(() => {
+  window.addEventListener("pointerdown", handlePointerDown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("pointerdown", handlePointerDown);
+});
+
+onLoop(() => {
+  if (!animationActive) return;
+
+  if (planeRef.value && planeRef_2.value) {
+    planeRef_2.value.visible = false;
+
+    // Animate the plane along the z-axis using GSAP
+    gsap.to(planeRef.value.position, {
+      z: -6,
+      duration: 1,
+      ease: "power1.inOut",
+      onComplete: () => {
+        setTimeout(() => {
+          planeRef.value.visible = false; // Make the plane invisible
+          setTimeout(() => {
+            if (!userClicked) {
+              planeRef_2.value.visible = true; // Make the plane visible only if not clicked
+            }
+          }, 2000);
+
+          animationActive = false; // Stop the animation loop
+        }, 7000);
+      },
+    });
+  }
+});
 </script>
 
 <template>
@@ -46,33 +81,33 @@ console.log(materials)
       :look-at="[0, 0, 0]"
     />
     <TresSpotLight
-        ref="spotlight1Ref"
-        :intensity="10"
-        :color="0xffffff"
-        :angle="Math.PI / 2"
-        :position="[1, -1, 2]"
-        :cast-shadow="true"
-      />
+      ref="spotlight1Ref"
+      :intensity="10"
+      :color="0xffffff"
+      :angle="Math.PI / 2"
+      :position="[1, -1, 2]"
+      :cast-shadow="true"
+    />
 
-      <TresSpotLight
-        ref="spotlight1Ref"
-        :intensity="10"
-        :color="0xffffff"
-        :angle="Math.PI / 2"
-        :position="[-1, 3, 3]"
-        :cast-shadow="true"
-      />
+    <TresSpotLight
+      ref="spotlight2Ref"
+      :intensity="10"
+      :color="0xffffff"
+      :angle="Math.PI / 2"
+      :position="[-1, 3, 3]"
+      :cast-shadow="true"
+    />
     <OrbitControls />
-       <primitive :object="scene" /> 
+    <primitive :object="scene" :position="[0, 0, 0]" />
 
-       <TresMesh :position="[0, 0.78, -2]">
-      <TresPlaneGeometry :args="[6, 3]" />
-      <TresMeshStandardMaterial  v-bind="pbrTexture" />
+    <TresMesh :position="[0, 0.78, 10]" ref="planeRef">
+      <TresPlaneGeometry :args="[6, 4]" />
+      <TresMeshStandardMaterial v-bind="Ramler_1_Texture" />
     </TresMesh>
-    <!-- <TresMesh :position="[0, -1, -3]">
-      <TresPlaneGeometry :args="[10, 2]" />
-      <TresMeshStandardMaterial  color="#FFFFFF" />
-    </TresMesh> -->
+    <TresMesh :position="[-4, 0.78, 2]" ref="planeRef_2">
+      <TresPlaneGeometry :args="[3, 1]" />
+      <TresMeshStandardMaterial v-bind="Ramler_3_Texture" />
+    </TresMesh>
 
     <TresAmbientLight :intensity="1" />
   </TresCanvas>

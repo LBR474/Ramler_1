@@ -2,6 +2,8 @@
 import Ramler from './components/Ramler.vue'
 //import Ramler_2 from './components/Ramler_2.vue'
 
+//import { useTresContextProvider } from '@tresjs/core';
+
 
 </script>
 
